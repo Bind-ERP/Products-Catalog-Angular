@@ -1,0 +1,239 @@
+<div class="container" style="margin-top: 50px;">
+  <div class="row">
+    <div class="col-md-3">
+      <h3>Productos</h3>
+    </div>
+    <div class="col-md-5"></div>
+    <div class="col-md-4">
+
+      <div class="col-md-3">
+        <label>API Key</label>
+      </div>
+      <div class="col-md-9">
+        <input [(ngModel)]="apiKey" (change)="validateApiKey()" type="text" placeholder="Api Key" class="form-control">
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="col-md-12">
+        <button class="btn btn-primary pull-right" (click)="initAddProduct();">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top: 10px; margin-bottom: 5px;">
+    <div class="col-md-4">
+      <div style="margin-top: 1.5%;" class="col-md-3">
+        <label>Código</label>
+      </div>
+      <div class="col-md-9">
+        <input [(ngModel)]="code" class="form-control" type="text" placeholder="Código" />
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div style="margin-top: 1.5%; padding: 0px;" class="col-md-3">
+        <label>Descripción</label>
+      </div>
+      <div class="col-md-9">
+        <input [(ngModel)]="description" class="form-control" type="text" placeholder="Descripcion" />
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="col-md-3">
+        <label>Inventario mayor a</label>
+      </div>
+      <div class="col-md-9">
+        <input min="0" [(ngModel)]="numberOfInventory" class="form-control" type="number" placeholder="#" />
+      </div>
+    </div>
+  </div>
+
+  <div class="row pull-right" style="margin-bottom: 10px;">
+
+    <div *ngIf="apiKeyError" class="col-md-8" style="color:red;">
+      <label>{{apiKeyErrorMsg}}</label>
+    </div>
+    <div class="col-md-4">
+      <div class="col-md-9">
+        <button (click)="search()" class="btn btn-secondary">Buscar</button>
+      </div>
+    </div>
+  </div>
+
+  <table class="table">
+    <tr>
+      <th>Código</th>
+      <th>Nombre</th>
+      <th>Descripción</th>
+      <th>Inventario</th>
+      <th>Acciones</th>
+    </tr>
+
+    <tr *ngFor='let p of productPageList.value;'>
+      <td>{{p.Code}}</td>
+      <td>{{p.Title}}</td>
+      <td>{{p.Description}}</td>
+      <td>{{p.CurrentInventory}}</td>
+      <td style="font-size: 1.5em;">
+        <span (click)="assignDetailId(p.ID);" style="cursor: pointer;" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>
+        <span (click)="assignDeleteId(p.ID);" style="cursor: pointer;" class="glyphicon glyphicon-remove-sign" aria-hidden="true"></span>
+      </td>
+    </tr>
+
+    <tr *ngIf="productPageList.value.length > 0">
+      <td>Pag {{currentPage + 1 }} de {{totalPages}}</td>
+      <td colspan="3" align="right">
+        <a href="#" (click)="first()" *ngIf="currentPage > 0">
+          << </a>
+            <a href="#" (click)="prev()" *ngIf="currentPage > 0">Anterior</a>
+            <span *ngIf="(currentPage+1) < totalPages">
+              <span *ngFor="let l of pageLinks(); trackBy: index;">
+                <a href="#" (click)="goToPage(l)"> {{l + 1}}</a>
+              </span>
+            </span>
+            <a href="#" (click)="next()" *ngIf="(currentPage + 1)  < totalPages">Siguiente</a>
+            <a href="#" (click)="last()" *ngIf="(currentPage + 1)  < totalPages"> >> </a>
+      </td>
+    </tr>
+  </table>
+
+  <ng2-toasty [position]="'top-right'"></ng2-toasty>
+
+  <modal #modalDelete [closeOnOutsideClick]="false">
+    <modal-header>
+      <h3>Eliminar Producto</h3>
+    </modal-header>
+    <modal-content>
+      ¿Desea eliminar el Producto?
+    </modal-content>
+    <modal-footer>
+      <button class="btn btn-secondary" (click)="modalDelete.close();">Cancelar</button>
+      <button class="btn btn-primary" (click)="deleteProduct(); modalDelete.close();">Eliminar</button>
+    </modal-footer>
+  </modal>
+
+  <modal #modalDetail [closeOnOutsideClick]="false">
+    <modal-header>
+      <h3>Detalle del Producto</h3>
+    </modal-header>
+    <modal-content>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="col-md-6">
+            <label>
+              Nombre
+            </label>
+            <input [disabled]="true" [(ngModel)]="productDetail.Title" class="form-control" type="text" placeholder="Nombre" />
+          </div>
+        </div>
+
+        <div class="col-md-12" style="margin-top: 10px;">
+          <div class="col-md-6">
+            <label>
+              Costo
+            </label>
+            <input [disabled]="true" [(ngModel)]="productDetail.Cost" class="form-control" type="text" placeholder="Costo" />
+          </div>
+
+          <div class="col-md-6">
+            <label>
+              Precio
+            </label>
+            <input [disabled]="true" [(ngModel)]="productDetail.Prices.Items[0].Price" class="form-control" type="text" placeholder="Precio"
+            />
+          </div>
+        </div>
+
+        <div class="col-md-12" style="margin-top: 10px;">
+          <div class="col-md-6">
+            <label>
+              Tipo de Moneda
+            </label>
+            <select [disabled]="true" [(ngModel)]="productDetail.CurrencyID" class="form-control" type="text" placeholder="Costo">
+              <option *ngFor="let c of currencyList.value" [ngValue]="c.ID">{{c.Name}}</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label>
+              Código
+            </label>
+            <input [disabled]="true" [(ngModel)]="productDetail.Code" class="form-control" type="text" placeholder="Código" />
+          </div>
+        </div>
+      </div>
+    </modal-content>
+    <modal-footer>
+      <button class="btn btn-primary" (click)="modalDetail.close();">Aceptar</button>
+    </modal-footer>
+  </modal>
+
+  <modal #modalAdd [closeOnOutsideClick]="false">
+    <modal-header>
+      <h3>Agregar Producto</h3>
+    </modal-header>
+    <modal-content>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="col-md-6">
+            <label>
+              Nombre
+            </label>
+            <input [(ngModel)]="newProduct.Title" class="form-control" type="text" placeholder="Nombre" />
+          </div>
+        </div>
+
+        <div class="col-md-12" style="margin-top: 10px;">
+          <div class="col-md-6">
+            <label>
+              Costo
+            </label>
+            <input [(ngModel)]="newProduct.Cost" class="form-control" type="text" placeholder="Costo" />
+          </div>
+
+          <div class="col-md-6">
+            <label>
+              Precio
+            </label>
+            <input [(ngModel)]="newProduct.Price" class="form-control" type="text" placeholder="Precio" />
+          </div>
+        </div>
+
+        <div class="col-md-12" style="margin-top: 10px;">
+          <div class="col-md-6">
+            <label>
+              Tipo de Moneda
+            </label>
+            <select [(ngModel)]="newProduct.CurrencyId" class="form-control" type="text">
+              <option *ngFor="let c of currencyList.value" [ngValue]="c.ID">{{c.Name}}</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label>
+              Código
+            </label>
+            <input [(ngModel)]="newProduct.Code" class="form-control" type="text" placeholder="Código" />
+          </div>
+        </div>
+
+        <div *ngIf="newProduct.CurrencyId !== 'b7e2c065-bd52-40ca-b508-3accdd538860' && newProduct.CurrencyId !== undefined" class="col-md-12" style="margin-top: 10px;">
+          <div class="col-md-6">
+            <label>
+              Tipo de Cambio
+            </label>
+            <input [(ngModel)]="newProduct.ExchangeRate" class="form-control" type="text" placeholder="Tipo de Cambio" />
+          </div>
+        </div>
+      </div>
+    </modal-content>
+    <modal-footer>
+      <button class="btn btn-secondary" (click)="modalAdd.close();">Cancelar</button>
+      <button class="btn btn-primary" (click)="addProduct();">Agregar</button>
+    </modal-footer>
+  </modal>
+</div>
